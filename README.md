@@ -56,7 +56,9 @@ Sistema web para **farmacia hospitalaria** en Argentina: ubicaciones, stock por 
    npm run dev
    ```
 
-Sin variables de Supabase, el **layout de la app** no exige login y podés abrir `/dashboard` para revisar la UI. Con Supabase activo, las rutas bajo `(main)` redirigen a `/login` (auth en servidor Node, sin middleware Edge: evita `__dirname` y bundles pesados en Vercel Edge).
+Sin variables de Supabase, el **layout de la app** no exige login y podés abrir `/dashboard` para revisar la UI. Con Supabase activo, las rutas bajo `(main)` redirigen a `/login`.
+
+**Vercel:** no hay archivo `middleware.ts` en la raíz. Cualquier middleware en Edge en este stack disparaba `MIDDLEWARE_INVOCATION_FAILED` / `__dirname is not defined`. La sesión se refresca al usar `createClient()` + `getUser()` en layouts/páginas servidor (`src/lib/supabase/server.ts`).
 
 ## Scripts
 
