@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -9,13 +10,38 @@ import { ConsumptionLineChart } from "@/components/dashboard-chart";
 import {
   getDashboardStats,
   getTopConsumptionSeries,
+  type DashboardStats,
 } from "@/lib/data/dashboard-stats";
 import { formatArsFromCents } from "@/lib/format";
 import { db } from "@/db";
 
+const emptyStats: DashboardStats = {
+  stockValorizadoArsCents: 0,
+  expiring30: 0,
+  expiring60: 0,
+  expiring90: 0,
+  stockouts: 0,
+  avgCoverageDays: null,
+  criticalAlerts: 0,
+  fefoComplianceSamplePct: null,
+  inventoryAccuracyPct: null,
+};
+
 export default async function DashboardPage() {
-  const stats = await getDashboardStats();
-  const series = await getTopConsumptionSeries();
+  let stats = emptyStats;
+  let series: Awaited<ReturnType<typeof getTopConsumptionSeries>> = [];
+  let dataError: string | null = null;
+
+  if (db) {
+    try {
+      stats = await getDashboardStats();
+      series = await getTopConsumptionSeries();
+    } catch {
+      dataError =
+        "Error al consultar la base de datos. Revisá la URI (pooler :6543, usuario postgres.REF) y que el esquema esté aplicado.";
+    }
+  }
+
   const chartData = series.map((r) => ({ day: r.day, qty: r.qty }));
 
   return (
@@ -35,6 +61,23 @@ export default async function DashboardPage() {
             <CardDescription>
               Configurá <code className="text-xs">DATABASE_URL</code> y ejecutá
               migraciones Drizzle para ver datos reales.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : null}
+
+      {dataError ? (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="text-destructive">No se cargaron los KPIs</CardTitle>
+            <CardDescription className="text-destructive/90">
+              {dataError}{" "}
+              <Link
+                href="/api/health/db"
+                className="mt-2 block font-mono text-xs text-foreground underline"
+              >
+                /api/health/db
+              </Link>
             </CardDescription>
           </CardHeader>
         </Card>
