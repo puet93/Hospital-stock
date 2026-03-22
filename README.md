@@ -56,7 +56,7 @@ Sistema web para **farmacia hospitalaria** en Argentina: ubicaciones, stock por 
    npm run dev
    ```
 
-**Autenticación:** por defecto **no** hay login: `/` y el panel abren directo. Para exigir Supabase Auth en rutas `(main)`, definí **`AUTH_REQUIRED=1`** en el entorno (Vercel / `.env.local`). Sin variables de Supabase, el login no puede funcionar aunque actives `AUTH_REQUIRED`.
+**Autenticación:** por defecto **no** hay login: `/` y el panel abren directo (cualquiera con la URL ve los datos; usalo solo en entornos de prueba o detrás de otra capa). Para exigir Supabase Auth en rutas `(main)`, definí **`AUTH_REQUIRED=1`** en el entorno (Vercel / `.env.local`). Sin variables de Supabase, el login no puede funcionar aunque actives `AUTH_REQUIRED`.
 
 **Vercel:** no hay archivo `middleware.ts` en la raíz. Cualquier middleware en Edge en este stack disparaba `MIDDLEWARE_INVOCATION_FAILED` / `__dirname is not defined`. La sesión se refresca al usar `createClient()` + `getUser()` en layouts/páginas servidor (`src/lib/supabase/server.ts`).
 
@@ -75,7 +75,7 @@ Sistema web para **farmacia hospitalaria** en Argentina: ubicaciones, stock por 
 
 ## Vercel y cron
 
-- `vercel.json` solo define el cron (`0 6 * * *`) hacia `/api/cron/evaluate-alerts`. **No** fija `buildCommand`/`installCommand`: Vercel debe detectar Next.js y empaquetar solo (evita 404 raros tras build OK).
+- `vercel.json` fija **`framework: "nextjs"`** y deja `buildCommand` / `outputDirectory` / `installCommand` en **`null`** (valor automático del builder de Next). Así se evita que un override viejo en el dashboard sirva una carpeta vacía y devuelva 404. También define el cron (`0 6 * * *`) hacia `/api/cron/evaluate-alerts`.
 - En Vercel, definí **`CRON_SECRET`**. El cron envía `Authorization: Bearer <CRON_SECRET>`.
 
 ### Variables de entorno en Vercel (Production)
@@ -105,26 +105,29 @@ En **Next.js en Vercel** no hay “carpeta de salida” manual: el build tiene q
    - Si el código vive en una subcarpeta (ej. `farmacia-hospital-stock-ar/`), poné **esa** ruta como Root Directory.
 
 2. **Settings → Build & Development → Output Directory**  
-   - Para Next.js debe estar **vacío** (no pongas `.next` ni `out`). Si lo configuraste, borralo; un valor incorrecto provoca 404 en toda la app.
+   - Para Next.js debe estar **vacío** (no pongas `.next` ni `out`). Si lo configuraste, borralo; un valor incorrecto provoca **404 en toda la app** aunque el log diga `Route (app)` y “Deployment completed”.  
+   - Si el UI tiene un toggle **Override**, apagalo para Output Directory (no alcanza con “borrar el texto” si el override sigue forzando un valor).
 
 3. **Framework Preset**  
-   - Debe ser **Next.js** (detección automática suele bastar).
+   - Debe ser **Next.js**. El `vercel.json` del repo fija `"framework": "nextjs"` para alinear con el builder correcto aunque el dashboard haya quedado en “Other”.
 
-4. Volvé a **Redeploy** tras corregir.
+4. **Dominio que abrís** — En Vercel, abrí el deploy → **Visit** (o copiá la URL “Production” de ese proyecto). A veces el enlace del repo de GitHub (`hospital-stock.vercel.app`) apunta a **otro** proyecto Vercel viejo o sin este código; ese caso da `404 NOT_FOUND` de plataforma en todas las rutas.
+
+5. Volvé a **Redeploy** tras corregir.
 
 Si Root y Output ya están vacíos y sigue el 404:
 
-5. **Mismo código en GitHub** — En la raíz del repo tiene que haber `package.json`, `next.config.ts` y la carpeta `src/app/` (no solo un submódulo o README). Abrí [tu repo en GitHub](https://github.com/puet93/Hospital-stock) y comprobá el árbol de archivos.
+6. **Mismo código en GitHub** — En la raíz del repo tiene que haber `package.json`, `next.config.ts` y la carpeta `src/app/` (no solo un submódulo o README). Abrí [tu repo en GitHub](https://github.com/puet93/Hospital-stock) y comprobá el árbol de archivos.
 
-6. **Rama de producción** — *Settings → Git → Production Branch* debe ser la rama que estás pusheando (normalmente `main`).
+7. **Rama de producción** — *Settings → Git → Production Branch* debe ser la rama que estás pusheando (normalmente `main`).
 
-7. **Build** — En el deploy → **Building** → el log debería mostrar algo como `Route (app)` con `/`, `/login`, `/dashboard`, etc. Si no aparece, el build no es el de Next.
+8. **Build** — En el deploy → **Building** → el log debería mostrar algo como `Route (app)` con `/`, `/login`, `/dashboard`, etc. Si no aparece, el build no es el de Next.
 
-8. **Overrides** — En *Settings → General* dejá vacíos **Build Command** e **Install Command** (sin override). Vercel usa `next build` automático para Next.js.
+9. **Overrides** — En *Settings → General* dejá vacíos **Build Command** e **Install Command** (sin override). Vercel usa `next build` automático para Next.js.
 
-9. **Redeploy sin caché** — Deployments → … en el último → **Redeploy** → marca **Clear build cache**.
+10. **Redeploy sin caché** — Deployments → … en el último → **Redeploy** → marca **Clear build cache**.
 
-10. **Probar rutas** — `https://tu-proyecto.vercel.app/login` y `https://tu-proyecto.vercel.app/dashboard` (a veces el preview del dashboard de Vercel apunta a una URL vieja).
+11. **Probar rutas** — `https://tu-proyecto.vercel.app/login` y `https://tu-proyecto.vercel.app/dashboard` (a veces el preview del dashboard de Vercel apunta a una URL vieja).
 
 ## Reglas de negocio (resumen)
 
