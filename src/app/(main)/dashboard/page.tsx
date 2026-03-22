@@ -8,10 +8,18 @@ import {
 } from "@/components/ui/card";
 import { ConsumptionLineChart } from "@/components/dashboard-chart";
 import {
+  StockByDrugChart,
+  StockByLocationChart,
+} from "@/components/dashboard-stock-charts";
+import {
   getDashboardStats,
-  getTopConsumptionSeries,
   type DashboardStats,
 } from "@/lib/data/dashboard-stats";
+import {
+  getConsumptionTotalsByDay,
+  getStockByDrug,
+  getStockByLocation,
+} from "@/lib/data/stock-trends";
 import { formatArsFromCents } from "@/lib/format";
 import { db } from "@/db";
 
@@ -29,20 +37,30 @@ const emptyStats: DashboardStats = {
 
 export default async function DashboardPage() {
   let stats = emptyStats;
-  let series: Awaited<ReturnType<typeof getTopConsumptionSeries>> = [];
+  let consumptionSeries: { day: string; qty: number }[] = [];
+  let byLocation: Awaited<ReturnType<typeof getStockByLocation>> = [];
+  let byDrug: Awaited<ReturnType<typeof getStockByDrug>> = [];
   let dataError: string | null = null;
 
   if (db) {
     try {
-      stats = await getDashboardStats();
-      series = await getTopConsumptionSeries();
+      const [s, cons, loc, drug] = await Promise.all([
+        getDashboardStats(),
+        getConsumptionTotalsByDay(90),
+        getStockByLocation(),
+        getStockByDrug(),
+      ]);
+      stats = s;
+      consumptionSeries = cons;
+      byLocation = loc;
+      byDrug = drug;
     } catch {
       dataError =
         "Error al consultar la base de datos. Revisá la URI (pooler :6543, usuario postgres.REF) y que el esquema esté aplicado.";
     }
   }
 
-  const chartData = series.map((r) => ({ day: r.day, qty: r.qty }));
+  const chartData = consumptionSeries.map((r) => ({ day: r.day, qty: r.qty }));
 
   return (
     <div className="space-y-8">
@@ -140,13 +158,34 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle>Tendencia de consumo</CardTitle>
             <CardDescription>
-              Serie diaria desde{" "}
-              <code className="text-xs">consumption_daily_aggregates</code>{" "}
-              (por medicamento, sector y ubicación en datos crudos).
+              Unidades egresadas por día (últimos 90 días) desde{" "}
+              <code className="text-xs">consumption_daily_aggregates</code>.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ConsumptionLineChart data={chartData} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Stock por ubicación</CardTitle>
+            <CardDescription>
+              Unidades disponibles sumadas por depósito / farmacia.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StockByLocationChart data={byLocation} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Stock por principio activo</CardTitle>
+            <CardDescription>
+              Distribución actual del inventario disponible.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StockByDrugChart data={byDrug} />
           </CardContent>
         </Card>
         <Card>

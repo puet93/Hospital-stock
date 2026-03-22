@@ -69,6 +69,23 @@ export function AppShell({
           )}
         </header>
         <main className="flex-1 space-y-6 p-4 md:p-8">
+          {authDisabled ? (
+            <div
+              className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sm text-sky-950 dark:border-sky-400/25 dark:bg-sky-950/40 dark:text-sky-100"
+              role="status"
+            >
+              <span className="font-medium">Vista pública</span>
+              <span className="text-sky-900/80 dark:text-sky-200/90">
+                {" "}
+                — acceso de solo lectura a catálogo, stock, tendencias y
+                reportes. Para exigir login definí{" "}
+                <code className="rounded bg-sky-950/10 px-1 font-mono text-xs dark:bg-sky-400/10">
+                  AUTH_REQUIRED=1
+                </code>{" "}
+                en el entorno.
+              </span>
+            </div>
+          ) : null}
           {subtitle ? (
             <p className="text-muted-foreground text-sm">{subtitle}</p>
           ) : null}
