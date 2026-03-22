@@ -165,42 +165,76 @@ async function main() {
   const m = String(today.getMonth() + 1).padStart(2, "0");
   const d = String(today.getDate()).padStart(2, "0");
 
-  await db.insert(schema.inventoryLots).values([
+  const insertedLots = await db
+    .insert(schema.inventoryLots)
+    .values([
+      {
+        commercialProductId: prodTafi!.id,
+        lotNumber: `TA-${y}-001`,
+        expiryDate: `${y + 1}-06-30`,
+        entryDate: `${y}-${m}-${d}`,
+        supplierId: sup!.id,
+        unitCostArsCents: 125_50,
+        locationId: depId,
+        qtyAvailable: 200,
+        qtyReserved: 10,
+        qtyBlocked: 0,
+      },
+      {
+        commercialProductId: prodTafi!.id,
+        lotNumber: `TA-${y}-002`,
+        expiryDate: `${y + 1}-01-15`,
+        entryDate: `${y}-01-10`,
+        supplierId: sup!.id,
+        unitCostArsCents: 118_00,
+        locationId: depId,
+        qtyAvailable: 40,
+        qtyReserved: 0,
+        qtyBlocked: 5,
+      },
+      {
+        commercialProductId: prodGen!.id,
+        lotNumber: `GE-${y}-010`,
+        expiryDate: `${y}-08-01`,
+        entryDate: `${y - 1}-06-01`,
+        supplierId: sup!.id,
+        unitCostArsCents: 45_00,
+        locationId: farmId,
+        qtyAvailable: 15,
+        qtyReserved: 0,
+        qtyBlocked: 0,
+      },
+    ])
+    .returning({ id: schema.inventoryLots.id });
+
+  const [lotA, lotB] = insertedLots;
+
+  await db.insert(schema.stockMovements).values([
     {
-      commercialProductId: prodTafi!.id,
-      lotNumber: `TA-${y}-001`,
-      expiryDate: `${y + 1}-06-30`,
-      entryDate: `${y}-${m}-${d}`,
-      supplierId: sup!.id,
-      unitCostArsCents: 125_50,
-      locationId: depId,
-      qtyAvailable: 200,
-      qtyReserved: 10,
-      qtyBlocked: 0,
+      movementType: "egreso",
+      inventoryLotId: lotA!.id,
+      quantity: 12,
+      fromLocationId: depId,
+      toLocationId: farmId,
+      sectorId: uciId,
+      reference: "DEMO-EG-001",
+      notes: "Egreso demo UCI",
     },
     {
-      commercialProductId: prodTafi!.id,
-      lotNumber: `TA-${y}-002`,
-      expiryDate: `${y + 1}-01-15`,
-      entryDate: `${y}-01-10`,
-      supplierId: sup!.id,
-      unitCostArsCents: 118_00,
-      locationId: depId,
-      qtyAvailable: 40,
-      qtyReserved: 0,
-      qtyBlocked: 5,
+      movementType: "transferencia",
+      inventoryLotId: lotA!.id,
+      quantity: 24,
+      fromLocationId: depId,
+      toLocationId: farmId,
+      reference: "DEMO-TR-001",
     },
     {
-      commercialProductId: prodGen!.id,
-      lotNumber: `GE-${y}-010`,
-      expiryDate: `${y}-08-01`,
-      entryDate: `${y - 1}-06-01`,
-      supplierId: sup!.id,
-      unitCostArsCents: 45_00,
-      locationId: farmId,
-      qtyAvailable: 15,
-      qtyReserved: 0,
-      qtyBlocked: 0,
+      movementType: "ingreso",
+      inventoryLotId: lotB!.id,
+      quantity: 40,
+      fromLocationId: null,
+      toLocationId: depId,
+      reference: "DEMO-IN-001",
     },
   ]);
 
