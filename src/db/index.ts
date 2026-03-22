@@ -8,7 +8,20 @@ function createDb() {
   if (!connectionString) {
     return null;
   }
-  const client = postgres(connectionString, { prepare: false, max: 10 });
+
+  const isSupabaseHost =
+    connectionString.includes("supabase.co") ||
+    connectionString.includes("pooler.supabase.com");
+
+  const client = postgres(connectionString, {
+    prepare: false,
+    // Serverless: 1 conexión por instancia; en Vercel conviene pooler :6543 en Supabase.
+    max: 1,
+    idle_timeout: 20,
+    connect_timeout: 20,
+    ...(isSupabaseHost ? { ssl: "require" as const } : {}),
+  });
+
   return drizzle(client, { schema });
 }
 

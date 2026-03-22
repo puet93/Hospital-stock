@@ -89,6 +89,10 @@ Sin variables de Supabase, el **layout de la app** no exige login y podés abrir
 
 Sin las públicas de Supabase, la app abre el panel sin login. `DATABASE_URL` mal puesta no suele dar 404, sino error al consultar la DB.
 
+**Supabase Auth en producción:** en *Authentication → URL configuration* cargá la URL de Vercel en **Site URL** (ej. `https://tu-proyecto.vercel.app`) y en **Redirect URLs** agregá `https://tu-proyecto.vercel.app/auth/callback` (y `http://localhost:3000/auth/callback` para local). Sin esto, el login con magic link / OAuth puede fallar aunque el deploy esté bien.
+
+**Postgres desde Vercel:** preferí la cadena **Transaction pooler** (puerto **6543**, host `*.pooler.supabase.com`, con `?pgbouncer=true` si el panel la muestra). El puerto **5432** directo a `db.*.supabase.co` a veces agota conexiones o da timeouts con muchas invocaciones serverless.
+
 **Diagnóstico:** abrí `https://tu-dominio.vercel.app/api/health` → debe responder JSON `{"ok":true,"env":{...}}`. Si ahí también ves 404 de plataforma, el problema es de enrutado/deploy en Vercel, no de una env concreta.
 
 ### Si el deploy está “Ready” pero ves `404: NOT_FOUND`
