@@ -1,12 +1,9 @@
 import type { NextConfig } from "next";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["postgres"],
-  outputFileTracingRoot: path.join(__dirname),
+  /** Raíz del app en CI (evita warning de lockfile fuera del repo; no usar __dirname en ESM). */
+  outputFileTracingRoot: process.cwd(),
 };
 
 export default nextConfig;
