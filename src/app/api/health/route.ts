@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAuthRequired } from "@/lib/auth-mode";
 
 /** Diagnóstico deploy: debe responder 200 en producción (no 404). */
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export async function GET() {
     env: {
       databaseUrlSet: hasDb,
       supabasePublicSet: hasSupabase,
+      authRequired: isAuthRequired(),
     },
   });
 }

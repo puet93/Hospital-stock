@@ -56,7 +56,7 @@ Sistema web para **farmacia hospitalaria** en Argentina: ubicaciones, stock por 
    npm run dev
    ```
 
-Sin variables de Supabase, el **layout de la app** no exige login y podés abrir `/dashboard` para revisar la UI. Con Supabase activo, las rutas bajo `(main)` redirigen a `/login`.
+**Autenticación:** por defecto **no** hay login: `/` y el panel abren directo. Para exigir Supabase Auth en rutas `(main)`, definí **`AUTH_REQUIRED=1`** en el entorno (Vercel / `.env.local`). Sin variables de Supabase, el login no puede funcionar aunque actives `AUTH_REQUIRED`.
 
 **Vercel:** no hay archivo `middleware.ts` en la raíz. Cualquier middleware en Edge en este stack disparaba `MIDDLEWARE_INVOCATION_FAILED` / `__dirname is not defined`. La sesión se refresca al usar `createClient()` + `getUser()` en layouts/páginas servidor (`src/lib/supabase/server.ts`).
 
@@ -82,12 +82,13 @@ Sin variables de Supabase, el **layout de la app** no exige login y podés abrir
 
 | Variable | Obligatoria | Notas |
 |----------|-------------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Sí (auth) | `https://xxx.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Sí (auth) | Clave anon del proyecto |
+| `NEXT_PUBLIC_SUPABASE_URL` | Solo si usás login | `https://xxx.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Solo si usás login | Clave anon del proyecto |
+| `AUTH_REQUIRED` | Opcional | `1` para exigir login en `(main)`; **sin definir**, el panel es público (provisional). |
 | `DATABASE_URL` | Sí (panel con datos) | URI `postgresql://...` (pooler 6543 recomendado), **no** la URL `https://` de Supabase |
 | `CRON_SECRET` | Para el cron | Cualquier string secreto; igual en Vercel y en el job |
 
-Sin las públicas de Supabase, la app abre el panel sin login. `DATABASE_URL` mal puesta no suele dar 404, sino error al consultar la DB.
+Sin `AUTH_REQUIRED`, no hace falta Supabase para **entrar** al panel; igual podés dejar las vars públicas si más adelante activás login. `DATABASE_URL` mal puesta no suele dar 404, sino error al consultar la DB.
 
 **Supabase Auth en producción:** en *Authentication → URL configuration* cargá la URL de Vercel en **Site URL** (ej. `https://tu-proyecto.vercel.app`) y en **Redirect URLs** agregá `https://tu-proyecto.vercel.app/auth/callback` (y `http://localhost:3000/auth/callback` para local). Sin esto, el login con magic link / OAuth puede fallar aunque el deploy esté bien.
 

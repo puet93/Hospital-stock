@@ -20,9 +20,12 @@ const nav = [
 export function AppShell({
   children,
   subtitle,
+  authDisabled = false,
 }: {
   children: React.ReactNode;
   subtitle?: string;
+  /** Si true, no se muestra “Salir” ni se usa Supabase en el shell. */
+  authDisabled?: boolean;
 }) {
   return (
     <div className="flex min-h-screen w-full">
@@ -47,15 +50,23 @@ export function AppShell({
             </Link>
           ))}
         </nav>
-        <Separator />
-        <div className="p-2">
-          <LogoutButton />
-        </div>
+        {!authDisabled ? (
+          <>
+            <Separator />
+            <div className="p-2">
+              <LogoutButton />
+            </div>
+          </>
+        ) : null}
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b px-4 md:hidden">
           <span className="font-medium">Farmacia</span>
-          <LogoutButton variant="outline" size="sm" />
+          {!authDisabled ? (
+            <LogoutButton variant="outline" size="sm" />
+          ) : (
+            <span className="text-muted-foreground text-xs">Sin login</span>
+          )}
         </header>
         <main className="flex-1 space-y-6 p-4 md:p-8">
           {subtitle ? (
