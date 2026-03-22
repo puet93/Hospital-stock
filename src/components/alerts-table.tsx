@@ -26,10 +26,11 @@ export function AlertsTable({ rows }: { rows: AlertRow[] }) {
       {
         accessorKey: "createdAt",
         header: "Alta",
-        cell: ({ getValue }) =>
-          formatDateAR(
-            new Date(getValue() as Date).toISOString().slice(0, 10)
-          ),
+        cell: ({ getValue }) => {
+          const v = getValue() as Date | null | undefined;
+          if (!v) return "—";
+          return formatDateAR(new Date(v).toISOString().slice(0, 10));
+        },
       },
       {
         accessorKey: "severity",

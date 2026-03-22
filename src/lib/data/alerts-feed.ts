@@ -8,7 +8,7 @@ export type AlertRow = {
   severity: string;
   title: string;
   message: string;
-  createdAt: Date;
+  createdAt: Date | null;
   brandName: string | null;
 };
 
