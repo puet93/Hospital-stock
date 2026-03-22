@@ -56,7 +56,7 @@ Sistema web para **farmacia hospitalaria** en Argentina: ubicaciones, stock por 
    npm run dev
    ```
 
-Sin variables de Supabase, el **middleware** no exige login y podés abrir `/dashboard` para revisar la UI. Con Supabase activo, las rutas de la aplicación redirigen a `/login`.
+Sin variables de Supabase, el **layout de la app** no exige login y podés abrir `/dashboard` para revisar la UI. Con Supabase activo, las rutas bajo `(main)` redirigen a `/login` (auth en servidor Node, sin middleware Edge: evita `__dirname` y bundles pesados en Vercel Edge).
 
 ## Scripts
 
