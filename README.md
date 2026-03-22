@@ -75,9 +75,21 @@ Sin variables de Supabase, el **layout de la app** no exige login y podés abrir
 
 ## Vercel y cron
 
-- `vercel.json` define un cron diario (`0 6 * * *`) contra `/api/cron/evaluate-alerts`.
-- En Vercel, definí la variable de entorno **`CRON_SECRET`**. El endpoint espera cabecera `Authorization: Bearer <CRON_SECRET>` (comportamiento estándar de Vercel Cron).
-- Asegurá también `DATABASE_URL` en el proyecto desplegado.
+- `vercel.json` solo define el cron (`0 6 * * *`) hacia `/api/cron/evaluate-alerts`. **No** fija `buildCommand`/`installCommand`: Vercel debe detectar Next.js y empaquetar solo (evita 404 raros tras build OK).
+- En Vercel, definí **`CRON_SECRET`**. El cron envía `Authorization: Bearer <CRON_SECRET>`.
+
+### Variables de entorno en Vercel (Production)
+
+| Variable | Obligatoria | Notas |
+|----------|-------------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Sí (auth) | `https://xxx.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Sí (auth) | Clave anon del proyecto |
+| `DATABASE_URL` | Sí (panel con datos) | URI `postgresql://...` (pooler 6543 recomendado), **no** la URL `https://` de Supabase |
+| `CRON_SECRET` | Para el cron | Cualquier string secreto; igual en Vercel y en el job |
+
+Sin las públicas de Supabase, la app abre el panel sin login. `DATABASE_URL` mal puesta no suele dar 404, sino error al consultar la DB.
+
+**Diagnóstico:** abrí `https://tu-dominio.vercel.app/api/health` → debe responder JSON `{"ok":true,"env":{...}}`. Si ahí también ves 404 de plataforma, el problema es de enrutado/deploy en Vercel, no de una env concreta.
 
 ### Si el deploy está “Ready” pero ves `404: NOT_FOUND`
 
@@ -103,7 +115,7 @@ Si Root y Output ya están vacíos y sigue el 404:
 
 7. **Build** — En el deploy → **Building** → el log debería mostrar algo como `Route (app)` con `/`, `/login`, `/dashboard`, etc. Si no aparece, el build no es el de Next.
 
-8. **Overrides** — En *Settings → General* desactivá “Override” de **Build Command** / **Install Command** si lo tenías tocado (dejá vacío). El `vercel.json` del repo fija `npm install` y `npm run build` por si el dashboard quedó inconsistente.
+8. **Overrides** — En *Settings → General* dejá vacíos **Build Command** e **Install Command** (sin override). Vercel usa `next build` automático para Next.js.
 
 9. **Redeploy sin caché** — Deployments → … en el último → **Redeploy** → marca **Clear build cache**.
 
