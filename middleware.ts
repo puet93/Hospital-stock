@@ -8,42 +8,9 @@ const PUBLIC_PATHS = new Set([
 ]);
 
 /**
- * Refresca la sesión de Supabase y propaga cookies (Edge-compatible).
- * No usar alias @/ aquí: el bundler de middleware en Vercel no lo resuelve bien.
+ * Middleware Edge (Vercel): no usar `request.cookies.set` — en Edge suele romper
+ * y dispara MIDDLEWARE_INVOCATION_FAILED. Solo escribir cookies en la Response.
  */
-async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
-
-  await supabase.auth.getUser();
-
-  return supabaseResponse;
-}
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -54,19 +21,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const supabaseResponse = await updateSession(request);
-
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
-  ) {
-    return supabaseResponse;
-  }
-
-  if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/api/cron")) {
-    return supabaseResponse;
-  }
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -76,29 +33,60 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll() {},
+        setAll(cookiesToSet) {
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
       },
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (!user && pathname !== "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    if (
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/favicon") ||
+      pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/)
+    ) {
+      return response;
+    }
+
+    if (PUBLIC_PATHS.has(pathname) || pathname.startsWith("/api/cron")) {
+      return response;
+    }
+
+    if (!user && pathname !== "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", pathname);
+      const redirect = NextResponse.redirect(url);
+      for (const c of response.headers.getSetCookie()) {
+        redirect.headers.append("Set-Cookie", c);
+      }
+      return redirect;
+    }
+
+    if (user && pathname === "/login") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      const redirect = NextResponse.redirect(url);
+      for (const c of response.headers.getSetCookie()) {
+        redirect.headers.append("Set-Cookie", c);
+      }
+      return redirect;
+    }
+
+    return response;
+  } catch {
+    return NextResponse.next();
   }
-
-  if (user && pathname === "/login") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
-
-  return supabaseResponse;
 }
 
 export const config = {
